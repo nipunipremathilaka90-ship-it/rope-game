@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rock Paper Scissors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --card: rgba(255, 255, 255, .92);
+    --text: #25214a;
+    --muted: #6b678f;
+    --field: #ffffff;
+    --border: #ddd9f5;
+    --track: #e7e4fa;
+    --accent: #667eea;
+    --accent2: #764ba2;
+    --good: #1f9d6b;
+    --bad: #e5484d;
+    --warn: #e08a00;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --card: rgba(28, 25, 56, .92);
+        --text: #f0eeff;
+        --muted: #aaa6d6;
+        --field: #25214a;
+        --border: #3d3871;
+        --track: #34305f;
+        --good: #3ddc97;
+        --bad: #ff7a7f;
+        --warn: #ffb84d;
+    }
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --card: rgba(28, 25, 56, .92);
+    --text: #f0eeff;
+    --muted: #aaa6d6;
+    --field: #25214a;
+    --border: #3d3871;
+    --track: #34305f;
+    --good: #3ddc97;
+    --bad: #ff7a7f;
+    --warn: #ffb84d;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    min-height: 100%;
+    font-family: "Poppins", Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    background-attachment: fixed;
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+.game {
+    width: 100%;
+    max-width: 460px;
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 30px 26px 24px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(30, 20, 80, .35);
+}
+h1 { margin: 0 0 4px; font-size: 1.6rem; font-weight: 700; }
+.sub { margin: 0 0 20px; color: var(--muted); font-size: .92rem; }
+
+.scores { display: flex; gap: 10px; margin-bottom: 18px; }
+.score {
+    flex: 1; padding: 10px 6px; border-radius: 14px;
+    background: var(--field); border: 1px solid var(--border);
+}
+.score small { display: block; color: var(--muted); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; }
+.score strong { font-size: 1.6rem; font-weight: 700; }
+.score.you strong { color: var(--good); }
+.score.cpu strong { color: var(--bad); }
+
+.arena { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
+.side {
+    flex: 1; padding: 14px 6px 10px; border-radius: 18px;
+    background: var(--field); border: 2px solid var(--border);
+    transition: border-color .25s, box-shadow .25s, transform .25s;
+}
+.side small { display: block; color: var(--muted); font-size: .75rem; font-weight: 600; }
+.hand { font-size: 3.6rem; line-height: 1.25; min-height: 1.25em; }
+.side.winner { border-color: var(--good); box-shadow: 0 0 0 4px rgba(31, 157, 107, .25); transform: scale(1.04); }
+.side.loser { opacity: .6; }
+.vs { font-weight: 700; color: var(--muted); }
+.shuffling .hand { animation: wobble .35s ease-in-out infinite; }
+@keyframes wobble { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+
+#message {
+    min-height: 3.2em; margin: 12px 0 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 1.05rem; color: var(--muted);
+}
+#message.win { color: var(--good); }
+#message.lose { color: var(--bad); }
+#message.draw { color: var(--warn); }
+
+.choices { display: flex; gap: 10px; margin-bottom: 14px; }
+.choice {
+    flex: 1; padding: 14px 6px 10px; border-radius: 16px; cursor: pointer;
+    background: var(--field); border: 2px solid var(--border); color: var(--text);
+    font: 600 .85rem "Poppins", Arial, sans-serif;
+    transition: transform .15s, border-color .2s, box-shadow .2s;
+}
+.choice span { display: block; font-size: 2.4rem; line-height: 1.2; }
+.choice:hover:not(:disabled) { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 8px 18px rgba(102, 126, 234, .35); }
+.choice:active:not(:disabled) { transform: scale(.96); }
+.choice:disabled { opacity: .55; cursor: not-allowed; }
+.choice kbd { display: block; margin-top: 2px; font: 400 .68rem "Poppins", Arial, sans-serif; color: var(--muted); }
+
+.btn-alt {
+    width: 100%; padding: 12px 18px; border-radius: 14px; cursor: pointer;
+    background: transparent; color: var(--text); border: 2px solid var(--border);
+    font: 600 .95rem "Poppins", Arial, sans-serif; transition: background .2s;
+}
+.btn-alt:hover { background: var(--track); }
+.btn-main {
+    border: none; color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow: 0 6px 16px rgba(102, 126, 234, .45);
+}
+
+.history { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; min-height: 30px; }
+.chip {
+    padding: 3px 10px; border-radius: 99px; font-size: .8rem; font-weight: 600;
+    background: var(--field); border: 1px solid var(--border); color: var(--muted);
+    animation: pop .25s ease;
+}
+.chip.win { color: var(--good); border-color: var(--good); }
+.chip.lose { color: var(--bad); border-color: var(--bad); }
+.chip.draw { color: var(--warn); border-color: var(--warn); }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.confetti {
+    position: fixed; top: -14px; width: 9px; height: 14px; border-radius: 2px;
+    pointer-events: none; z-index: 10; animation: fall linear forwards;
+}
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .shuffling .hand, .chip, .confetti { animation: none; }
+    .side, .choice { transition: none; }
+}
+@media (max-width: 380px) {
+    .game { padding: 22px 16px 18px; }
+    .hand { font-size: 3rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="game">
+    <h1>✊ ✋ ✌️ Rock Paper Scissors</h1>
+    <p class="sub">First to <b>5</b> wins the match</p>
+
+    <div class="scores">
+        <div class="score you"><small>You</small><strong id="youScore">0</strong></div>
+        <div class="score"><small>Draws</small><strong id="drawScore">0</strong></div>
+        <div class="score cpu"><small>Computer</small><strong id="cpuScore">0</strong></div>
+    </div>
+
+    <div class="arena" id="arena">
+        <div class="side" id="youSide"><small>You</small><div class="hand" id="youHand">❔</div></div>
+        <div class="vs">VS</div>
+        <div class="side" id="cpuSide"><small>Computer</small><div class="hand" id="cpuHand">❔</div></div>
+    </div>
+
+    <p id="message">Choose your move!</p>
+
+    <div class="choices">
+        <button class="choice" data-choice="rock" onclick="play('rock')" aria-label="Rock"><span>✊</span>Rock<kbd>R</kbd></button>
+        <button class="choice" data-choice="paper" onclick="play('paper')" aria-label="Paper"><span>✋</span>Paper<kbd>P</kbd></button>
+        <button class="choice" data-choice="scissors" onclick="play('scissors')" aria-label="Scissors"><span>✌️</span>Scissors<kbd>S</kbd></button>
+    </div>
+
+    <button class="btn-alt" id="restartBtn" onclick="restartGame()">Restart</button>
+
+    <div class="history" id="history" aria-label="Round history"></div>
+</div>
+
+<script>
+    const WIN_SCORE = 5;
+
+    const MOVES = {
+        rock:     { emoji: "✊", label: "Rock",     beats: "scissors" },
+        paper:    { emoji: "✋", label: "Paper",    beats: "rock" },
+        scissors: { emoji: "✌️", label: "Scissors", beats: "paper" }
+    };
+    const KEYS = Object.keys(MOVES);
+
+    let youScore = 0;
+    let cpuScore = 0;
+    let drawScore = 0;
+    let busy = false;       // computer is "thinking"
+    let matchOver = false;
+
+    const $ = function (id) { return document.getElementById(id); };
+    const messageEl = $("message");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function setMessage(text, type) {
+        messageEl.textContent = text;
+        messageEl.className = type || "";
+    }
+
+    function setButtons(disabled) {
+        document.querySelectorAll(".choice").forEach(function (btn) { btn.disabled = disabled; });
+    }
+
+    function updateScores() {
+        $("youScore").textContent = youScore;
+        $("cpuScore").textContent = cpuScore;
+        $("drawScore").textContent = drawScore;
+    }
+
+    function addChip(you, cpu, result) {
+        const chip = document.createElement("span");
+        chip.className = "chip " + result;
+        const tag = result === "win" ? "W" : result === "lose" ? "L" : "D";
+        chip.textContent = MOVES[you].emoji + " vs " + MOVES[cpu].emoji + " · " + tag;
+        const history = $("history");
+        history.insertBefore(chip, history.firstChild);
+        while (history.children.length > 8) history.removeChild(history.lastChild);
+    }
+
+    function confetti() {
+        for (let i = 0; i < 45; i++) {
+            const piece = document.createElement("span");
+            piece.className = "confetti";
+            piece.style.left = Math.random() * 100 + "vw";
+            piece.style.background = "hsl(" + Math.floor(Math.random() * 360) + ", 85%, 60%)";
+            piece.style.animationDuration = (1.8 + Math.random() * 1.6) + "s";
+            piece.style.animationDelay = (Math.random() * 0.5) + "s";
+            document.body.appendChild(piece);
+            setTimeout(function () { piece.remove(); }, 4200);
+        }
+    }
+
+    function getResult(you, cpu) {
+        if (you === cpu) return "draw";
+        return MOVES[you].beats === cpu ? "win" : "lose";
+    }
+
+    function play(choice) {
+        if (busy || matchOver) return;
+
+        busy = true;
+        setButtons(true);
+        $("restartBtn").disabled = true;
+        $("youSide").className = "side";
+        $("cpuSide").className = "side";
+        $("youHand").textContent = MOVES[choice].emoji;
+        setMessage("Computer is choosing…", "");
+
+        const cpuChoice = KEYS[Math.floor(Math.random() * KEYS.length)];
+        const arena = $("arena");
+        const cpuHand = $("cpuHand");
+
+        // Short shuffle animation for the computer
+        let ticker = null;
+        if (!reduceMotion) {
+            arena.classList.add("shuffling");
+            ticker = setInterval(function () {
+                cpuHand.textContent = MOVES[KEYS[Math.floor(Math.random() * KEYS.length)]].emoji;
+            }, 90);
+        }
+
+        setTimeout(function () {
+            if (ticker) clearInterval(ticker);
+            arena.classList.remove("shuffling");
+            cpuHand.textContent = MOVES[cpuChoice].emoji;
+
+            const result = getResult(choice, cpuChoice);
+
+            if (result === "win") {
+                youScore++;
+                $("youSide").classList.add("winner");
+                $("cpuSide").classList.add("loser");
+                setMessage(MOVES[choice].label + " beats " + MOVES[cpuChoice].label + ". You win this round!", "win");
+            } else if (result === "lose") {
+                cpuScore++;
+                $("cpuSide").classList.add("winner");
+                $("youSide").classList.add("loser");
+                setMessage(MOVES[cpuChoice].label + " beats " + MOVES[choice].label + ". Computer wins this round.", "lose");
+            } else {
+                drawScore++;
+                setMessage("It’s a draw! You both chose " + MOVES[choice].label + ".", "draw");
+            }
+
+            addChip(choice, cpuChoice, result);
+            updateScores();
+            $("restartBtn").disabled = false;
+
+            if (youScore >= WIN_SCORE || cpuScore >= WIN_SCORE) {
+                matchOver = true;
+                if (youScore >= WIN_SCORE) {
+                    setMessage("🎉 You won the match! Congratulations!", "win");
+                    confetti();
+                } else {
+                    setMessage("😢 Computer won the match. Try again!", "lose");
+                }
+                $("restartBtn").textContent = "Play again";
+                $("restartBtn").classList.add("btn-main");
+            } else {
+                setButtons(false);
+            }
+
+            busy = false;
+        }, reduceMotion ? 150 : 800);
+    }
+
+    // game restart
+    function restartGame() {
+        if (busy) return;
+
+        youScore = 0;
+        cpuScore = 0;
+        drawScore = 0;
+        matchOver = false;
+
+        updateScores();
+        setButtons(false);
+        $("youHand").textContent = "❔";
+        $("cpuHand").textContent = "❔";
+        $("youSide").className = "side";
+        $("cpuSide").className = "side";
+        $("history").innerHTML = "";
+        $("restartBtn").textContent = "Restart";
+        $("restartBtn").classList.remove("btn-main");
+        setMessage("New game started! Choose your move!", "");
+    }
+
+    // Keyboard shortcuts: R = Rock, P = Paper, S = Scissors
+    document.addEventListener("keydown", function (event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        const key = event.key.toLowerCase();
+        if (key === "r") play("rock");
+        else if (key === "p") play("paper");
+        else if (key === "s") play("scissors");
+    });
+</script>
+
+</body>
+</html>
